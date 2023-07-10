@@ -7,19 +7,19 @@ using Xunit;
 
 namespace Sam.Checkout.IntegrationTests;
 
-public class Tests: IClassFixture<WebApplicationFactory<Program>>
+public class PaymentTests: IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly WebApplicationFactory<Program> _factory;
     private readonly IGatewayClient _gatewayClient;
 
-    public Tests(WebApplicationFactory<Program> factory)
+    public PaymentTests(WebApplicationFactory<Program> factory)
     {
         _factory = factory;
         _gatewayClient = new GatewayClient();
     }
 
     [Fact]
-    public async Task InsertAndGetPayment()
+    public async Task Payment_ValidPayment_InsertsAndReturnsSuccessfulPayment()
     {
         // Arrange
         var client = _factory.WithWebHostBuilder(builder =>
@@ -32,14 +32,14 @@ public class Tests: IClassFixture<WebApplicationFactory<Program>>
 
         var paymentDto = new PaymentDto
         { 
-            Amount = 123, 
-            Currency = "GBP", 
-            Card = new CardDto 
+            Amount = 123,
+            Currency = "GBP",
+            Card = new CardDto
             { 
-                Number = "1234123412341234", 
-                Cvv = "123", 
-                ExpiryMonth = 10, 
-                ExpiryYear = 2023 
+                Number = "1234123412341234",
+                Cvv = "123",
+                ExpiryMonth = 10,
+                ExpiryYear = 23
             } 
         };
 
@@ -54,6 +54,14 @@ public class Tests: IClassFixture<WebApplicationFactory<Program>>
         var getPaymentResult = await _gatewayClient.Get(client, paymentResult.Id);
 
         Assert.NotNull(getPaymentResult);
-        //Assert.Equal(getPaymentResult, paymentResult.Id);
+
+        Assert.Equal(paymentDto.Amount, getPaymentResult.Amount);
+        Assert.Equal(paymentDto.Currency, getPaymentResult.Currency);
+        Assert.Equal(paymentDto.Card.Cvv, getPaymentResult.Card.Cvv);
+        Assert.Equal(paymentDto.Card.ExpiryMonth, getPaymentResult.Card.ExpiryMonth);
+        Assert.Equal(paymentDto.Card.ExpiryYear, getPaymentResult.Card.ExpiryYear);
+        Assert.Equal("1234############", getPaymentResult.Card.Number);
+
+        //TODO: Delete the records that the tests create or recreate the db. Not doing this to save time.
     }
 }

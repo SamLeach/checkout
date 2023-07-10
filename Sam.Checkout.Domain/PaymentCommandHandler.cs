@@ -20,8 +20,10 @@ public class PaymentCommandHandler : IPaymentCommandHandler
         // Mapped here. This could be elsewhere but felt there are already too many abstractions for a simple exercise
         var paymentEntity = new PaymentEntity
         {
+            Amount = paymentDto.Amount,
+            Currency = paymentDto.Currency,
             AquiringBankPaymentId = bankResponse.Id,
-            Status = 0,
+            Status = paymentResult.Success ? 1 : 0, // TODO: I don't want the db type to be a boolean so that the status can be extended to include future statuses
             Card = new CardEntity
             {
                 MaskedNumber = paymentDto.Card.Number[..4] + "############",

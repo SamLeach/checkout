@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using FluentValidation;
+using Microsoft.AspNetCore.Mvc;
 using Sam.Checkout.Domain;
 
 namespace Sam.Checkout.Payment;
@@ -6,11 +7,15 @@ namespace Sam.Checkout.Payment;
 [ApiController]
 public class PaymentController : ControllerBase
 {
+    private readonly IValidator<PaymentDto> paymentValidator;
     private readonly IPaymentCommandHandler paymentHandler;
     private readonly IPaymentQuery paymentQuery;
 
-    public PaymentController(IPaymentCommandHandler paymentHandler, IPaymentQuery paymentQuery)
+    public PaymentController(IValidator<PaymentDto> paymentValidtor, 
+        IPaymentCommandHandler paymentHandler, 
+        IPaymentQuery paymentQuery)
     {
+        this.paymentValidator = paymentValidtor;
         this.paymentHandler = paymentHandler;
         this.paymentQuery = paymentQuery;
     }
@@ -19,9 +24,10 @@ public class PaymentController : ControllerBase
     public async Task<IActionResult> Post(PaymentDto paymentDto)
     {
         // Can put in action filter but only a couple actions here so leaving it here
-        if (!ModelState.IsValid)
+        var validationResult = await this.paymentValidator.ValidateAsync(paymentDto);
+        if (!validationResult.IsValid)
         {
-            return BadRequest(ModelState);
+            return BadRequest();
         }
 
         // This could use MediatR or MassTransit or something similar to decouple but keeping it simple hard method call for this exercise
@@ -43,5 +49,4 @@ public class PaymentController : ControllerBase
         var paymentEntity = this.paymentQuery.Query(id);
         return paymentEntity is null ? NotFound() : Ok(paymentEntity);
     }
-
 }

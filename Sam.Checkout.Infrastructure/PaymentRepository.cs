@@ -1,4 +1,5 @@
-﻿using Sam.Checkout.Domain;
+﻿using Microsoft.EntityFrameworkCore;
+using Sam.Checkout.Domain;
 
 namespace Sam.Checkout.Infrastructure;
 public class PaymentRepository : IPaymentRepository
@@ -19,6 +20,8 @@ public class PaymentRepository : IPaymentRepository
 
     public PaymentEntity Get(Guid id)
     {
-        return context.Payments.SingleOrDefault(p => p.Id == id);
+        return context.Payments
+            .Include(p => p.Card)
+            .SingleOrDefault(p => p.Id == id);
     }
 }

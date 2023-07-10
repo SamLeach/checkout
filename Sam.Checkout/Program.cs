@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Sam.Checkout.Domain;
 using Sam.Checkout.FakeAcquiringBank.Client;
@@ -11,6 +12,9 @@ builder.Services.AddScoped<IPaymentQuery, PaymentQuery>();
 
 builder.Services.AddScoped<IFakeBankClient, FakeBankClient>();
 builder.Services.AddScoped<IGatewayClient, GatewayClient>();
+
+builder.Services.AddScoped<IValidator<CardDto>, CardDtoValidator>();
+builder.Services.AddScoped<IValidator<PaymentDto>, PaymentDtoValidator>();
 
 builder.Services.AddHttpClient();
 

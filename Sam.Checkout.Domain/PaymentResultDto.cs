@@ -2,7 +2,7 @@
 
 public class PaymentResultDto
 {
-    public required Guid Id { get; set; }
+    public Guid Id { get; set; }
 
-    public required bool Success { get; set; }
+    public bool Success { get; set; }
 }

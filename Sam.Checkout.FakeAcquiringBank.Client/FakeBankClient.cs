@@ -13,7 +13,6 @@ public class FakeBankClient : IFakeBankClient
     public async Task<PaymentResultDto> Post(PaymentDto paymentDto)
     {
         var response = await httpClient.PostAsJsonAsync("api/payment", paymentDto);
-        response.EnsureSuccessStatusCode();
         var paymentResult = await response.Content.ReadFromJsonAsync<PaymentResultDto>();
         return paymentResult is null ? throw new Exception("Payment failed. Do something better") : paymentResult;
     }

@@ -16,6 +16,8 @@ The rest of the solution follows the "Domain-Infra" structure were the Domain de
 
 *(`PaymentCommandHandler` and `PaymentQuery` in `Sam.Checkout.Domain` project contain a lot of the logic, a lot of the other classes are boilerplate and mapping dtos and Entities)*
 
+Set both Web Api projects as startup projects
+
 ## Tests
 
 There are XUnit/Moq unit tests and TestServer integration tests. Failure cases are tested. These integration tests create a "in-memory" app and test against it. It's a complete Gateway with nothing mocked except the acquring bank side.
@@ -30,6 +32,17 @@ I ended up deciding to mask the card number as it's inserted into the database. 
 ## Persistance
 
 I decided to use Entity Framework and `localdb` as a persistent datastore. In order for the Integration tests to pass, you need a localdb with access, etc. I would have liked to setup Docker but did not want to spend any more time doing it. Ideally it's dockerised. I hope setting up a persistant store gives me "extra mile bonus points". It would be easier to use Entity Framework in-memory mode.
+
+Connect to database with following username and Windows authentication
+
+`(localdb)\MSSQLLocalDB`
+
+Sample Query:
+
+`SELECT *
+  FROM Payments
+  JOIN Cards ON Payments.CardId = Cards.Id;`
+
 
 ## Notes
 

@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Sam.Checkout.Domain;
@@ -9,17 +10,19 @@ public class PaymentControllerTests
 {
     private readonly Mock<IPaymentCommandHandler> paymentCommandHandlerMock;
     private readonly Mock<IPaymentQuery> paymentQueryMock;
+    private readonly IValidator<PaymentDto> paymentValidator;
 
     public PaymentControllerTests()
     {
         paymentCommandHandlerMock = new Mock<IPaymentCommandHandler>();
         paymentQueryMock = new Mock<IPaymentQuery>();
+        paymentValidator = new PaymentDtoValidator();
     }
 
     [Fact]
     public async Task Post_ValidPayload_OK200()
     {
-        var paymentController = new Payment.PaymentController(paymentCommandHandlerMock.Object, paymentQueryMock.Object);
+        var paymentController = new Payment.PaymentController(paymentValidator, paymentCommandHandlerMock.Object, paymentQueryMock.Object);
 
         Guid paymentId = Guid.NewGuid();
         var dto = new PaymentDto
@@ -49,7 +52,7 @@ public class PaymentControllerTests
     [Fact]
     public async Task Post_PaymentFailed_OK200()
     {
-        var paymentController = new Payment.PaymentController(paymentCommandHandlerMock.Object, paymentQueryMock.Object);
+        var paymentController = new Payment.PaymentController(paymentValidator, paymentCommandHandlerMock.Object, paymentQueryMock.Object);
 
         Guid paymentId = Guid.NewGuid();
         var dto = new PaymentDto
@@ -77,19 +80,18 @@ public class PaymentControllerTests
     }
 
     [Fact]
-    public async Task Post_InvalidPaymentModel_BadRequest400()
+    public async Task Post_InvalidCurrency_BadRequest400()
     {
-        var paymentController = new Payment.PaymentController(paymentCommandHandlerMock.Object, paymentQueryMock.Object);
-        paymentController.ModelState.AddModelError("invalid", "invalid");
+        var paymentController = new Payment.PaymentController(paymentValidator, paymentCommandHandlerMock.Object, paymentQueryMock.Object);
 
         var dto = new PaymentDto
         {
             Amount = 123,
-            Currency = "GBP",
+            Currency = "P",
             Card = new CardDto
             {
                 Cvv = "345",
-                ExpiryMonth = 122,
+                ExpiryMonth = 12,
                 ExpiryYear = 99,
                 Number = "1234123412341234"
             }
@@ -97,7 +99,122 @@ public class PaymentControllerTests
 
         var postResponse = await paymentController.Post(dto);
 
-        Assert.IsType<BadRequestObjectResult>(postResponse);
+        Assert.IsType<BadRequestResult>(postResponse);
+    }
+
+    [Fact]
+    public async Task Post_InvalidNegativeAmount_BadRequest400()
+    {
+        var paymentController = new Payment.PaymentController(paymentValidator, paymentCommandHandlerMock.Object, paymentQueryMock.Object);
+
+        var dto = new PaymentDto
+        {
+            Amount = -1,
+            Currency = "GBP",
+            Card = new CardDto
+            {
+                Cvv = "345",
+                ExpiryMonth = 12,
+                ExpiryYear = 99,
+                Number = "1234123412341234"
+            }
+        };
+
+        var postResponse = await paymentController.Post(dto);
+
+        Assert.IsType<BadRequestResult>(postResponse);
+    }
+
+    [Fact]
+    public async Task Post_InvalidCvv_BadRequest400()
+    {
+        var paymentController = new Payment.PaymentController(paymentValidator, paymentCommandHandlerMock.Object, paymentQueryMock.Object);
+
+        var dto = new PaymentDto
+        {
+            Amount = -1,
+            Currency = "GBP",
+            Card = new CardDto
+            {
+                Cvv = "3",
+                ExpiryMonth = 12,
+                ExpiryYear = 99,
+                Number = "1234123412341234"
+            }
+        };
+
+        var postResponse = await paymentController.Post(dto);
+
+        Assert.IsType<BadRequestResult>(postResponse);
+    }
+
+    [Fact]
+    public async Task Post_InvalidCardNumber_BadRequest400()
+    {
+        var paymentController = new Payment.PaymentController(paymentValidator, paymentCommandHandlerMock.Object, paymentQueryMock.Object);
+
+        var dto = new PaymentDto
+        {
+            Amount = -1,
+            Currency = "GBP",
+            Card = new CardDto
+            {
+                Cvv = "3",
+                ExpiryMonth = 12,
+                ExpiryYear = 99,
+                Number = "123"
+            }
+        };
+
+        var postResponse = await paymentController.Post(dto);
+
+        Assert.IsType<BadRequestResult>(postResponse);
+    }
+
+    [Fact]
+    public async Task Post_InvalidExpiryMonth_BadRequest400()
+    {
+        var paymentController = new Payment.PaymentController(paymentValidator, paymentCommandHandlerMock.Object, paymentQueryMock.Object);
+
+        var dto = new PaymentDto
+        {
+            Amount = -1,
+            Currency = "GBP",
+            Card = new CardDto
+            {
+                Cvv = "3",
+                ExpiryMonth = 122,
+                ExpiryYear = 99,
+                Number = "123"
+            }
+        };
+
+        var postResponse = await paymentController.Post(dto);
+
+        Assert.IsType<BadRequestResult>(postResponse);
+    }
+
+    [Fact]
+    public async Task Post_InvalidExpiryYear_BadRequest400()
+    {
+        var paymentController = new Payment.PaymentController(paymentValidator, paymentCommandHandlerMock.Object, paymentQueryMock.Object);
+
+        var dto = new PaymentDto
+        {
+            Amount = -1,
+            Currency = "GBP",
+            Card = new CardDto
+            {
+                Cvv = "3",
+                ExpiryMonth = 12,
+                ExpiryYear = 200,
+                Number = "123"
+            }
+        };
+
+        var postResponse = await paymentController.Post(dto);
+
+        Assert.IsType<BadRequestResult>(postResponse);
     }
 
     [Fact]
@@ -122,7 +239,7 @@ public class PaymentControllerTests
             .Setup(m => m.Query(queryId))
             .Returns(payment);
 
-        var paymentController = new Payment.PaymentController(paymentCommandHandlerMock.Object, paymentQueryMock.Object);
+        var paymentController = new Payment.PaymentController(paymentValidator, paymentCommandHandlerMock.Object, paymentQueryMock.Object);
 
         var getResponse = paymentController.Get(queryId);
 
@@ -146,7 +263,7 @@ public class PaymentControllerTests
             .Setup(m => m.Query(queryId))
             .Returns((PaymentDto)null);
 
-        var paymentController = new Payment.PaymentController(paymentCommandHandlerMock.Object, paymentQueryMock.Object);
+        var paymentController = new Payment.PaymentController(paymentValidator, paymentCommandHandlerMock.Object, paymentQueryMock.Object);
 
         var getResponse = paymentController.Get(queryId);
 
@@ -156,7 +273,7 @@ public class PaymentControllerTests
     [Fact]
     public void Get_InValidPaymentId_BadRequest400()
     {
-        var paymentController = new Payment.PaymentController(paymentCommandHandlerMock.Object, paymentQueryMock.Object);
+        var paymentController = new Payment.PaymentController(paymentValidator, paymentCommandHandlerMock.Object, paymentQueryMock.Object);
 
         var getResponse = paymentController.Get(Guid.Empty);
 
